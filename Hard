@@ -1,0 +1,113 @@
+1: Entity - Account.java
+
+package com.example;
+
+import jakarta.persistence.*;
+
+@Entity
+public class Account {
+    @Id
+    private int id;
+    private String name;
+    private double balance;
+
+    // Getters & Setters
+}
+
+
+2: Entity - Transaction.java
+
+
+package com.example;
+
+import jakarta.persistence.*;
+import java.util.Date;
+
+@Entity
+public class Transaction {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private int transId;
+    private int fromAccount;
+    private int toAccount;
+    private double amount;
+    private Date date = new Date();
+
+    // Getters & Setters
+}
+
+
+3: Hibernate + Spring Configuration (Java-based or XML)
+If using applicationContext.xml (Spring)
+
+
+<bean id="sessionFactory" class="org.springframework.orm.hibernate5.LocalSessionFactoryBean">
+  <property name="configLocation" value="classpath:hibernate.cfg.xml"/>
+</bean>
+
+<bean id="transactionManager" class="org.springframework.orm.hibernate5.HibernateTransactionManager">
+  <property name="sessionFactory" ref="sessionFactory"/>
+</bean>
+
+<tx:annotation-driven transaction-manager="transactionManager"/>
+
+
+4: DAO with Transactional Logic
+
+
+package com.example;
+
+import jakarta.transaction.Transactional;
+import org.hibernate.SessionFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public class BankingDao {
+
+    @Autowired
+    private SessionFactory factory;
+
+    @Transactional
+    public void transferMoney(int fromId, int toId, double amount) {
+        var session = factory.getCurrentSession();
+
+        Account from = session.get(Account.class, fromId);
+        Account to = session.get(Account.class, toId);
+
+        if (from.getBalance() < amount) {
+            throw new RuntimeException("Insufficient funds");
+        }
+
+        from.setBalance(from.getBalance() - amount);
+        to.setBalance(to.getBalance() + amount);
+
+        Transaction tx = new Transaction();
+        tx.setFromAccount(fromId);
+        tx.setToAccount(toId);
+        tx.setAmount(amount);
+
+        session.save(tx);
+    }
+}
+
+
+5: Main App (via Spring Context)
+
+
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
+
+public class Main {
+    public static void main(String[] args) {
+        ApplicationContext ctx = new ClassPathXmlApplicationContext("applicationContext.xml");
+        BankingDao dao = ctx.getBean(BankingDao.class);
+
+        try {
+            dao.transferMoney(101, 102, 500);
+            System.out.println("Transaction successful!");
+        } catch (Exception e) {
+            System.out.println("Transaction failed: " + e.getMessage());
+        }
+    }
+}
