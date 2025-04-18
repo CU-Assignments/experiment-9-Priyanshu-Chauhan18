@@ -1,0 +1,105 @@
+hibernate.cfg.xml)
+
+
+<hibernate-configuration>
+  <session-factory>
+    <property name="hibernate.connection.driver_class">com.mysql.cj.jdbc.Driver</property>
+    <property name="hibernate.connection.url">jdbc:mysql://localhost:3306/spring_db</property>
+    <property name="hibernate.connection.username">root</property>
+    <property name="hibernate.connection.password">your_password</property>
+    <property name="hibernate.dialect">org.hibernate.dialect.MySQL8Dialect</property>
+    <property name="hibernate.hbm2ddl.auto">update</property>
+    <property name="show_sql">true</property>
+
+    <mapping class="com.example.Student"/>
+  </session-factory>
+</hibernate-configuration>
+
+
+2.Student.java Entity
+
+
+package com.example;
+
+import jakarta.persistence.*;
+
+@Entity
+@Table(name = "students")
+public class Student {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private int id;
+    private String name;
+    private int age;
+
+    // Getters & Setters
+}
+
+3: StudentDao.java (CRUD)
+
+
+
+package com.example;
+
+import org.hibernate.*;
+import org.hibernate.cfg.Configuration;
+
+public class StudentDao {
+    private SessionFactory factory = new Configuration().configure().buildSessionFactory();
+
+    public void create(Student student) {
+        Session session = factory.openSession();
+        Transaction tx = session.beginTransaction();
+        session.save(student);
+        tx.commit();
+        session.close();
+    }
+
+    public Student read(int id) {
+        Session session = factory.openSession();
+        Student student = session.get(Student.class, id);
+        session.close();
+        return student;
+    }
+
+    public void update(Student student) {
+        Session session = factory.openSession();
+        Transaction tx = session.beginTransaction();
+        session.update(student);
+        tx.commit();
+        session.close();
+    }
+
+    public void delete(Student student) {
+        Session session = factory.openSession();
+        Transaction tx = session.beginTransaction();
+        session.delete(student);
+        tx.commit();
+        session.close();
+    }
+}
+
+
+4. Main to Test CRUD
+
+
+package com.example;
+
+public class Main {
+    public static void main(String[] args) {
+        StudentDao dao = new StudentDao();
+
+        Student s = new Student();
+        s.setName("John");
+        s.setAge(22);
+        dao.create(s);
+
+        Student fetched = dao.read(1);
+        System.out.println("Read: " + fetched.getName());
+
+        fetched.setAge(23);
+        dao.update(fetched);
+
+        dao.delete(fetched);
+    }
+}
